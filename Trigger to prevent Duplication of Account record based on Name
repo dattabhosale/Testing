@@ -1,0 +1,42 @@
+
+// Trigger to prevent Duplication of Account record based on Name whenever account is updated or inserted
+
+
+trigger triggerAccount on Account (before insert,before update) {
+    switch on trigger.operationType{
+        when BEFORE_UPDATE{
+            preventDuplicationAccount.checkDuplicationRecord(trigger.new,trigger.oldMap);
+        }
+        when BEFORE_INSERT{
+            preventDuplicationAccount.checkDuplicationRecord(trigger.new,NULL);
+        }
+    }
+}
+
+
+
+public class preventDuplicationAccount {
+    public Static void checkDuplicationRecord(List<Account> newList,Map<Id,Account> oldMap){
+        List<String> accountName = new List<String>();
+        Set<Id> accId = new Set<Id>();
+        if(newList!=NULL && oldMap!=NULL){
+            for(Account acc : newList){
+                if(acc.Name == oldMap.get(acc.Id).Name){
+                    accId.add(acc.Id);
+                }
+            }
+        }
+        List<Account> allAccount = [Select Id,Name From Account where Id NOT IN:accId];
+        for(Account acc : allAccount){
+            accountName.add(acc.Name);
+        }
+        if(newList!=NULL){
+            for(Account acc : newList){
+                if(accountName.contains(acc.Name)){
+                    acc.addError('You cannot save duplicate record');
+                }
+            }
+        }
+        
+    }
+}

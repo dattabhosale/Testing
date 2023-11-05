@@ -1,0 +1,54 @@
+/* Find Maximum Amount Opportunity and update on Account
+	
+	Trigger -  
+*/
+trigger oppTrigger on Opportunity (After insert, After update, After Delete) {
+    
+    switch on Trigger.operationType{
+        when AFTER_INSERT{
+            oppHandler.updateMaxAmountOpp(trigger.new,NULL);
+        }
+        when AFTER_UPDATE{
+            oppHandler.updateMaxAmountOpp(trigger.new,trigger.old);
+        }
+        when AFTER_DELETE{
+            oppHandler.updateMaxAmountOpp(NULL,trigger.old);
+        }
+    }
+
+}
+
+
+
+       /*  oppHandler-Trigger Handler (class Name)   */
+public class oppHandler {
+    public static void updateMaxAmountOpp(List<Opportunity> newList , List<Opportunity> oldList){
+        Set<Id> accountIds = new Set<Id>();
+        if(newList != NULL){
+            for(Opportunity opp : newList){
+                accountIds.add(opp.AccountId);
+            }
+        }
+        if(oldList!=NULL){
+            for(Opportunity opp : oldList){
+                accountIds.add(opp.Accountid);
+            }
+        }
+        System.debug('Account List '+accountIds);
+        List<Account> aList = new List<Account>();
+        List<Account> accList = [SELECT Id,Name,(Select Name,Amount from Opportunities ORDER BY Amount DESC LIMIT 1)
+                                 FROM Account Where Id IN :accountIds];
+        if(accList!=NULL){
+            for(Account acc : accList){
+                if(!acc.Opportunities.isEmpty()){
+                    acc.Opp_Name__c=acc.Opportunities[0].Name;
+                    System.debug('Opp Name '+acc.Opportunities[0].Name);
+                    aList.add(acc);
+                }
+                
+            }
+        }
+        update aList;
+    }
+    
+}
